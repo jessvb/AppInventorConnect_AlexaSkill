@@ -74,6 +74,62 @@ const handlers = {
     this.response.cardRenderer(SKILL_NAME, randomFact);
     this.response.speak(speechOutput);
     this.emit(':responseReady');
+
+    // // for lambda redis etc. (todo delete me and put me in a diff fxn)
+    // 'use strict'
+    // const authKey = require('./authKey');
+    // const redis = require('redis');
+    // const SET_SUB_SCRIPT_SHA1 = '765978e4c340012f50733280368a0ccc4a14dfb7';
+    // const SET_SUB_SCRIPT = 'local key = KEYS[1];' +
+    //     'local value = ARGV[1];' +
+    //     'local topublish = cjson.decode(ARGV[2]);' +
+    //     'local project = ARGV[3];' +
+    //     'local newtable = {};' +
+    //     'table.insert(newtable, key);' +
+    //     'table.insert(newtable, topublish);' +
+    //     'redis.call("publish", project, cjson.encode(newtable));' +
+    //     'return redis.call(\'set\', project .. ":" .. key, value);';
+    // let client = redis.createClient(
+    //     'rediss://clouddb.appinventor.mit.edu:6381',
+    //     {'password': authKey.getAuthKey(), 'tls': {}});
+
+    // // tests setting and getting a variable in clouddb
+    // client.set(
+    //     'foo',
+    //     'This is a test, if you see this logged to the console, things are
+    //     working!');
+    // client.get('foo', function(e, r) {
+    //   if (e) {
+    //     console.log('Something went wrong');
+    //   } else {
+    //     if (r) {
+    //       console.log(r);
+    //     }
+    //   }
+    // });
+
+    // let response;
+    // let error;
+    // // tests setting and PUBLISHING in clouddb (this will be noticed by App
+    // // Inventor components subscribed to the updates)
+    // client.eval(
+    //     // Calling convention: tag, value, json encoded list of values,
+    //     project,
+    //     // ...
+    //     SET_SUB_SCRIPT, 1, 'tag1', 'val1', JSON.stringify(['val1']),
+    //     'Lambda_CloudDB_Redis_Test', function(e, r) {
+    //       if (e) {
+    //         console.log('Something went wrong: ', e);
+    //         error = e;
+    //       } else {
+    //         if (r) {
+    //           console.log('reply:', r);
+    //           response = r;
+    //         }
+    //       }
+    //     });
+
+    // end lambda redis delete^^
   },
   'AMAZON.HelpIntent': function() {
     const speechOutput = HELP_MESSAGE;
@@ -105,34 +161,5 @@ exports.handler = function(event, context, callback) {
     } else {
       return context.succeed(res)
     }
-  })
+  });
 };
-
-// For Redis server / App Inventor CloudDB:
-// exports = () => {
-//   const redis = require('redis');
-//   const jsonify = require('redis-jsonify');
-//   const redisOptions = {
-//     host: '128.30.9.34',  // todo... see clouddb.appinventor.mit.edu
-//                          // https://github.com/ddollar/redis-url/blob/master/README.md
-//     port: 6379,     // todo... clouddb: 6381 / default: 6379
-//     password: ''  // todo... clouddb token??
-//   };
-//   // original from https://stackoverflow.com/questions/37094695/how-should-i-connect-to-a-redis-instance-from-an-aws-lambda-function:
-//   // exports = () => {
-//   //   const redis = require('redis');
-//   //   const jsonify = require('redis-jsonify');
-//   //   const redisOptions = {
-//   //     host: // can define these environment variables on the AWS Lambda function page
-//   //         process.env
-//   //             .REDIS_URL,  // todo... see clouddb.appinventor.mit.edu / 128.30.9.34 is my wifi address (i.e., host url) 
-//   //                          // https://github.com/ddollar/redis-url/blob/master/README.md
-//   //     port: process.env.REDIS_PORT,     // todo... clouddb: 6381 / default: 6379
-//   //     password: process.env.REDIS_PASS  // todo... clouddb token??
-//   //   };
-
-//   return jsonify(redis.createClient(redisOptions));
-// }
-
-// 128.30.9.34 is my wifi address (i.e., host url) 
-// (to find in windows, click wifi symbol, properties, then find your IPv4 address)
