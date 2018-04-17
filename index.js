@@ -109,30 +109,30 @@ exports.handler = function(event, context, callback) {
 };
 
 // For Redis server / App Inventor CloudDB:
-exports = () => {
-  const redis = require('redis');
-  const jsonify = require('redis-jsonify');
-  const redisOptions = {
-    host: '128.30.9.34',  // todo... see clouddb.appinventor.mit.edu
-                         // https://github.com/ddollar/redis-url/blob/master/README.md
-    port: 6379,     // todo... clouddb: 6381 / default: 6379
-    password: ''  // todo... clouddb token??
-  };
-  // original from https://stackoverflow.com/questions/37094695/how-should-i-connect-to-a-redis-instance-from-an-aws-lambda-function:
-  // exports = () => {
-  //   const redis = require('redis');
-  //   const jsonify = require('redis-jsonify');
-  //   const redisOptions = {
-  //     host: // can define these environment variables on the AWS Lambda function page
-  //         process.env
-  //             .REDIS_URL,  // todo... see clouddb.appinventor.mit.edu / 128.30.9.34 is my wifi address (i.e., host url) 
-  //                          // https://github.com/ddollar/redis-url/blob/master/README.md
-  //     port: process.env.REDIS_PORT,     // todo... clouddb: 6381 / default: 6379
-  //     password: process.env.REDIS_PASS  // todo... clouddb token??
-  //   };
+// exports = () => {
+//   const redis = require('redis');
+//   const jsonify = require('redis-jsonify');
+//   const redisOptions = {
+//     host: '128.30.9.34',  // todo... see clouddb.appinventor.mit.edu
+//                          // https://github.com/ddollar/redis-url/blob/master/README.md
+//     port: 6379,     // todo... clouddb: 6381 / default: 6379
+//     password: ''  // todo... clouddb token??
+//   };
+//   // original from https://stackoverflow.com/questions/37094695/how-should-i-connect-to-a-redis-instance-from-an-aws-lambda-function:
+//   // exports = () => {
+//   //   const redis = require('redis');
+//   //   const jsonify = require('redis-jsonify');
+//   //   const redisOptions = {
+//   //     host: // can define these environment variables on the AWS Lambda function page
+//   //         process.env
+//   //             .REDIS_URL,  // todo... see clouddb.appinventor.mit.edu / 128.30.9.34 is my wifi address (i.e., host url) 
+//   //                          // https://github.com/ddollar/redis-url/blob/master/README.md
+//   //     port: process.env.REDIS_PORT,     // todo... clouddb: 6381 / default: 6379
+//   //     password: process.env.REDIS_PASS  // todo... clouddb token??
+//   //   };
 
-  return jsonify(redis.createClient(redisOptions));
-}
+//   return jsonify(redis.createClient(redisOptions));
+// }
 
 // 128.30.9.34 is my wifi address (i.e., host url) 
 // (to find in windows, click wifi symbol, properties, then find your IPv4 address)

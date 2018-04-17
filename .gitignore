@@ -28,4 +28,5 @@ $RECYCLE.BIN/
 *.lnk
 
 ### Other Files ###
-mitfacts.zip
+authKey.js
+*.zip
