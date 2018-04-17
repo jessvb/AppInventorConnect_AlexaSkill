@@ -1,22 +1,14 @@
-/* eslint-disable  func-names */
-/* eslint quote-props: ["error", "consistent"]*/
 /**
  * This sample demonstrates a simple skill built with the Amazon Alexa Skills
  * nodejs skill development kit.
- * This sample supports multiple lauguages. (en-US, en-GB, de-DE).
- * The Intent Schema, Custom Slots and Sample Utterances for this skill, as well
- * as testing instructions are located at
- *https://github.com/alexa/skill-sample-nodejs-fact
+ * 
+ * This skill can produce random facts about MIT and connect with App Inventor.
  **/
 
 'use strict';
-const Alexa = require('alexa-sdk');
-// For Redis server / App Inventor CloudDB:
-const lib = require('lib/related');  // todo check if this is correct
-                                     // location...
 
 //=========================================================================================================================================
-// TODO: The items below this comment need your attention.
+// Constants:
 //=========================================================================================================================================
 
 // Replace with your app ID (OPTIONAL).  You can find this value at the top of
@@ -25,6 +17,7 @@ const lib = require('lib/related');  // todo check if this is correct
 // 'amzn1.ask.skill.bb4045e6-b3e8-4133-b650-72923c5980f1';
 const APP_ID = undefined;
 
+// for MIT facts:
 const SKILL_NAME = 'MIT Facts';
 const GET_FACT_MESSAGE = 'Here\'s your fact: ';
 const HELP_MESSAGE =
@@ -35,9 +28,26 @@ const SPEECH_TAGS = '<prosody pitch="x-low">'  // this is if you want to modify
                                                // the voice, for example
 const END_SPEECH_TAGS = '</prosody>'
 
+// for App Inventor and CloudDB:
+const urlHostPort = 'rediss://clouddb.appinventor.mit.edu:6381';
+const authKey = require('./authKey');
+const redis = require('redis');
+const SET_SUB_SCRIPT_SHA1 = '765978e4c340012f50733280368a0ccc4a14dfb7';
+const SET_SUB_SCRIPT = 'local key = KEYS[1];' +
+    'local value = ARGV[1];' +
+    'local topublish = cjson.decode(ARGV[2]);' +
+    'local project = ARGV[3];' +
+    'local newtable = {};' +
+    'table.insert(newtable, key);' +
+    'table.insert(newtable, topublish);' +
+    'redis.call("publish", project, cjson.encode(newtable));' +
+    'return redis.call(\'set\', project .. ":" .. key, value);';
+
+// for connecting with Alexa:
+const Alexa = require('alexa-sdk');
+
 //=========================================================================================================================================
-// TODO: Replace this data with your own.  You can find translations of this
-// data at http://github.com/alexa/skill-sample-node-js-fact/data
+// Facts that will be randomly chosen to be said by Alexa:
 //=========================================================================================================================================
 const data = [
   'MIT was founded April 10, 1861, two days before the start of the Civil War..',
@@ -57,7 +67,7 @@ const data = [
 ];
 
 //=========================================================================================================================================
-// Editing anything below this line might break your skill.
+// Handlers:
 //=========================================================================================================================================
 
 const handlers = {
@@ -75,61 +85,38 @@ const handlers = {
     this.response.speak(speechOutput);
     this.emit(':responseReady');
 
-    // // for lambda redis etc. (todo delete me and put me in a diff fxn)
-    // 'use strict'
-    // const authKey = require('./authKey');
-    // const redis = require('redis');
-    // const SET_SUB_SCRIPT_SHA1 = '765978e4c340012f50733280368a0ccc4a14dfb7';
-    // const SET_SUB_SCRIPT = 'local key = KEYS[1];' +
-    //     'local value = ARGV[1];' +
-    //     'local topublish = cjson.decode(ARGV[2]);' +
-    //     'local project = ARGV[3];' +
-    //     'local newtable = {};' +
-    //     'table.insert(newtable, key);' +
-    //     'table.insert(newtable, topublish);' +
-    //     'redis.call("publish", project, cjson.encode(newtable));' +
-    //     'return redis.call(\'set\', project .. ":" .. key, value);';
-    // let client = redis.createClient(
-    //     'rediss://clouddb.appinventor.mit.edu:6381',
-    //     {'password': authKey.getAuthKey(), 'tls': {}});
+    // for lambda redis
+    let client = redis.createClient(
+        urlHostPort, {'password': authKey.getAuthKey(), 'tls': {}});
 
-    // // tests setting and getting a variable in clouddb
-    // client.set(
-    //     'foo',
-    //     'This is a test, if you see this logged to the console, things are
-    //     working!');
-    // client.get('foo', function(e, r) {
-    //   if (e) {
-    //     console.log('Something went wrong');
-    //   } else {
-    //     if (r) {
-    //       console.log(r);
-    //     }
-    //   }
-    // });
+    let response;
+    let error;
+    let tag = 'alexa';
+    let value = 'alexaCalledAppInventor';
+    let projectName = 'Lambda_CloudDB_Redis_Test';
+    // tests setting and PUBLISHING in clouddb (this will be noticed by App
+    // Inventor components subscribed to the updates)
+    client.eval(
+        // Calling convention: tag, value, json encoded list of values, project,
+        // ...
+        SET_SUB_SCRIPT, 1, tag, value, JSON.stringify([value]), projectName,
+        function(e, r) {
+          if (e) {
+            console.error('Something went wrong with client.eval: ', e);
+            error = e;
+          } else {
+            if (r) {
+              response = r;
+            }
+          }
 
-    // let response;
-    // let error;
-    // // tests setting and PUBLISHING in clouddb (this will be noticed by App
-    // // Inventor components subscribed to the updates)
-    // client.eval(
-    //     // Calling convention: tag, value, json encoded list of values,
-    //     project,
-    //     // ...
-    //     SET_SUB_SCRIPT, 1, 'tag1', 'val1', JSON.stringify(['val1']),
-    //     'Lambda_CloudDB_Redis_Test', function(e, r) {
-    //       if (e) {
-    //         console.log('Something went wrong: ', e);
-    //         error = e;
-    //       } else {
-    //         if (r) {
-    //           console.log('reply:', r);
-    //           response = r;
-    //         }
-    //       }
-    //     });
-
-    // end lambda redis delete^^
+          // quit redis:
+          client.end(function(err) {
+            if (err) {
+              console.error('Error when quitting redis: ', err);
+            }
+          });
+        });
   },
   'AMAZON.HelpIntent': function() {
     const speechOutput = HELP_MESSAGE;
@@ -153,13 +140,4 @@ exports.handler = function(event, context, callback) {
   alexa.APP_ID = APP_ID;
   alexa.registerHandlers(handlers);
   alexa.execute();
-
-  // For Redis server / App Inventor CloudDB:
-  lib.respond(event, (err, res) => {
-    if (err) {
-      return context.fail(err)
-    } else {
-      return context.succeed(res)
-    }
-  });
 };
