@@ -1,8 +1,8 @@
 /**
  * This sample demonstrates a simple skill built with the Amazon Alexa Skills
  * nodejs skill development kit.
- * 
- * This skill can produce random facts about MIT and connect with App Inventor.
+ *
+ * This skill can connect with App Inventor.
  **/
 
 'use strict';
@@ -17,16 +17,13 @@
 // 'amzn1.ask.skill.bb4045e6-b3e8-4133-b650-72923c5980f1';
 const APP_ID = undefined;
 
-// for MIT facts:
-const SKILL_NAME = 'MIT Facts';
-const GET_FACT_MESSAGE = 'Here\'s your fact: ';
+// for speech and alexa app:
+const SKILL_NAME = 'App Inventor';
+const CONNECTING_MESSAGE = 'Connecting.';
 const HELP_MESSAGE =
-    'You can say tell me a fact, or, you can say exit... What can I help you with?';
+    'If you want to connect with App Inventor, you can say, "Ask App Inventor to connect"';
 const HELP_REPROMPT = 'What can I help you with?';
 const STOP_MESSAGE = 'Goodbye!';
-const SPEECH_TAGS = '<prosody pitch="x-low">'  // this is if you want to modify
-                                               // the voice, for example
-const END_SPEECH_TAGS = '</prosody>'
 
 // for App Inventor and CloudDB:
 const urlHostPort = 'rediss://clouddb.appinventor.mit.edu:6381';
@@ -47,41 +44,19 @@ const SET_SUB_SCRIPT = 'local key = KEYS[1];' +
 const Alexa = require('alexa-sdk');
 
 //=========================================================================================================================================
-// Facts that will be randomly chosen to be said by Alexa:
-//=========================================================================================================================================
-const data = [
-  'MIT was founded April 10, 1861, two days before the start of the Civil War..',
-  'In 1958, Oliver Smoot (class of ’62) with his Lambda Chi Alpha brothers measured the Harvard bridge in units of Smoots. Members of the fraternity maintain the painted marks.',
-  'While Tony Stark is said to have graduated from MIT “summa cum laude,” MIT does not have any class ranking for its students.',
-  'The Infinite Corridor lines up with the plane of the ecliptic twice a year, filling the 0.16 mile hallway with sunlight.',
-  'The first human cancer gene discovery took place at MIT. Weinberg found the ras oncogene.',
-  'A Pirate’s License can be granted to MIT students who complete pistol, archery, fencing and sailing classes. While the license existed for 20 years unofficially, it was made official in 2012.',
-  'MIT Invented the first computer in Cambridge in 1928. You can view Whirlwind I at the MIT Museum.',
-  'MIT’s program in architecture was the first established in the U.S.',
-  'Tetazoo, an East Campus floor, stands for The Third East Traveling Animal Zoo. Known for hacking and a reckless attitude, it’s uncertain if these students are actually zoological.',
-  'There is a secret climbing gym on the third floor of MITs Morse Hall. Can you find it?',
-  'MIT has earned 203 Academic All America citations, the most for any Division 3 program in the nation.',
-  'MIT has over 500 student groups, 33 varsity sports teams, and 168 acres of land along and across the Charles River.',
-  'MITs beaver mascot is named MIT spelled backwards.',
-  'The (arguably) absolute best lab at MIT is the App Inventor Lab. They do cool things like democratize programming, artificial intelligence and other technology. Oh, and they have a lot of fun!'
-];
-
-//=========================================================================================================================================
-// Handlers:
+// Editing anything below this line might break your skill.
 //=========================================================================================================================================
 
 const handlers = {
   'LaunchRequest': function() {
-    this.emit('GetNewFactIntent');
+    this.emit('ConnectToAppInventor');
   },
-  'GetNewFactIntent': function() {
-    const factArr = data;
-    const factIndex = Math.floor(Math.random() * factArr.length);
-    const randomFact = factArr[factIndex];
-    const speechOutput =
-        SPEECH_TAGS + GET_FACT_MESSAGE + randomFact + END_SPEECH_TAGS;
+  'ConnectToAppInventor': function() {
+    const speechOutput = CONNECTING_MESSAGE;
 
-    this.response.cardRenderer(SKILL_NAME, randomFact);
+    // render a card in the alexa app:
+    this.response.cardRenderer(SKILL_NAME, CONNECTING_MESSAGE);
+    // voice output from alexa:
     this.response.speak(speechOutput);
     this.emit(':responseReady');
 
