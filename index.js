@@ -18,12 +18,20 @@
 const APP_ID = undefined;
 
 // for speech and alexa app:
-const SKILL_NAME = 'App Inventor';
+const SKILL_NAME = 'App Inventor Connect';
+const LAUNCH_MESSAGE =
+    'Hello! My name is Codi, and I am here to help you connect to App Inventor! ' +
+    'If you would like to connect, you can say, "Alexa, ask Inventor Codi to connect."';
 const CONNECTING_MESSAGE = 'Connecting.';
 const HELP_MESSAGE =
-    'If you want to connect with App Inventor, you can say, "Ask App Inventor to connect"';
+    'If you want to connect with App Inventor, you can say, "Ask Inventor Codi to connect".' +
+    'If the connection did not work correctly, try checking your code in App Inventor, ' +
+    ' or getting help from the online tutorials you can find at ' +
+    'App Inventor dot MIT dot EDU slash explore slash AI2 slash tutorials dot html. ' +
+    'If you are still having trouble, feel free to post on the App Inventor forums. ' +
+    'You can find the forums in the Resources menu on the App Inventor website.';
 const HELP_REPROMPT = 'What can I help you with?';
-const STOP_MESSAGE = 'Goodbye!';
+const STOP_MESSAGE = 'Closing App Inventor Connect. Goodbye!';
 
 // for App Inventor and CloudDB:
 const urlHostPort = 'rediss://clouddb.appinventor.mit.edu:6381';
@@ -42,6 +50,7 @@ const SET_SUB_SCRIPT = 'local key = KEYS[1];' +
 
 // for connecting with Alexa:
 const Alexa = require('alexa-sdk');
+const ALEXA_TAG = "_ALEXA_SIGNAL_"
 
 //=========================================================================================================================================
 // Editing anything below this line might break your skill.
@@ -49,16 +58,17 @@ const Alexa = require('alexa-sdk');
 
 const handlers = {
   'LaunchRequest': function() {
-    this.emit('ConnectToAppInventor');
+    this.response.speak(LAUNCH_MESSAGE);
+    this.emit(':responseReady');
   },
   'ConnectToAppInventor': function() {
-    const speechOutput = CONNECTING_MESSAGE;
-
-    // render a card in the alexa app:
-    this.response.cardRenderer(SKILL_NAME, CONNECTING_MESSAGE);
-    // voice output from alexa:
-    this.response.speak(speechOutput);
-    this.emit(':responseReady');
+    // You can't speak twice in one response :'(, thus, this is commented out
+    // // render a card in the alexa app:
+    // const speechOutput = CONNECTING_MESSAGE;
+    // this.response.cardRenderer(SKILL_NAME, CONNECTING_MESSAGE);
+    // // voice output from alexa:
+    // this.response.speak(speechOutput);
+    // // this.emit(':responseReady');
 
     // for lambda redis
     let client = redis.createClient(
@@ -66,7 +76,7 @@ const handlers = {
 
     let response;
     let error;
-    let tag = 'alexa';
+    let tag = ALEXA_TAG;
     let value = 'alexaCalledAppInventor';
     let projectName = 'Lambda_CloudDB_Redis_Test';
     // tests setting and PUBLISHING in clouddb (this will be noticed by App
@@ -92,6 +102,31 @@ const handlers = {
             }
           });
         });
+    // Feedback for the user:
+    let voiceOutput = '';
+    let cardOutput = '';
+    if (error) {
+      voiceOutput = 'There was an error connecting. Please try again later. ' +
+          'If this problem persists, please post on the App Inventor forums, ' +
+          'which can be found in the Resources menu on the App Inventor website, ' +
+          '"App Inventor dot MIT dot EDU". ';
+      cardOutput = voiceOutput + '(appinventor.mit.edu) ' +
+          ' You may include the following error code with your post on the forums: ' +
+          error;
+    } else {
+      voiceOutput = 'Successfully connected to App Inventor! ';
+      cardOutput = voiceOutput +
+          'If the "when Alexa.sendsSignal" block was not ' +
+          'triggered in App Inventor, check the tutorials section ' +
+          '(http://appinventor.mit.edu/explore/ai2/tutorials.html) or the forums ' +
+          '(https://groups.google.com/forum/#!forum/mitappinventortest) ' +
+          'on the App Inventor website.';
+    }
+    // render a card in the alexa app:
+    this.response.cardRenderer(SKILL_NAME, cardOutput);
+    // voice output from alexa:
+    this.response.speak(voiceOutput);
+    this.emit(':responseReady');
   },
   'AMAZON.HelpIntent': function() {
     const speechOutput = HELP_MESSAGE;
