@@ -18,7 +18,7 @@
 const APP_ID = undefined;
 
 // for speech and alexa app:
-const SKILL_NAME = 'App Inventor Connect';
+const SKILL_NAME = 'App Inventor Connect - Possibilities';
 const LAUNCH_MESSAGE =
     'Hello! My name is Codi, and I am here to help you connect to App Inventor! ' +
     'If you would like to connect, you can say, "Alexa, ask Inventor Codi to connect."';
@@ -32,6 +32,9 @@ const HELP_MESSAGE =
     'You can find the forums in the Resources menu on the App Inventor website.';
 const HELP_REPROMPT = 'What can I help you with?';
 const STOP_MESSAGE = 'Closing App Inventor Connect. Goodbye!';
+const FALLBACK_MESSAGE = 'I\'m not sure what you mean. ' +
+    'I can send a signal to App Inventor if you say,' +
+    ' \'Alexa, ask Inventor Codi to send signal three.\'';
 
 // for App Inventor and CloudDB:
 const urlHostPort = 'rediss://clouddb.appinventor.mit.edu:6381';
@@ -50,7 +53,9 @@ const SET_SUB_SCRIPT = 'local key = KEYS[1];' +
 
 // for connecting with Alexa:
 const Alexa = require('alexa-sdk');
-const ALEXA_TAG = "_ALEXA_SIGNAL_"
+const ALEXA_TAG = '_ALEXA_SIGNAL_';
+const PROJECT_NAME = 'TestAlexaPID';  // todo: make this modify-able by the user
+
 
 //=========================================================================================================================================
 // Editing anything below this line might break your skill.
@@ -61,71 +66,88 @@ const handlers = {
     this.response.speak(LAUNCH_MESSAGE);
     this.emit(':responseReady');
   },
-  'ConnectToAppInventor': function() {
-    // You can't speak twice in one response :'(, thus, this is commented out
-    // // render a card in the alexa app:
-    // const speechOutput = CONNECTING_MESSAGE;
-    // this.response.cardRenderer(SKILL_NAME, CONNECTING_MESSAGE);
-    // // voice output from alexa:
-    // this.response.speak(speechOutput);
-    // // this.emit(':responseReady');
+  'SignalIntent': function() {
+    let signalNum = this.event.request.intent.slots.signalNum.value;
+    // If we've been given a signal number, try to signal App Inventor and then
+    // give feedback to the user
+    if (signalNum != null) {
+      console.log('signalling app inventor with number: ' + signalNum);
+      // for lambda redis
+      let client = redis.createClient(
+          urlHostPort, {'password': authKey.getAuthKey(), 'tls': {}});
 
-    // for lambda redis
-    let client = redis.createClient(
-        urlHostPort, {'password': authKey.getAuthKey(), 'tls': {}});
-
-    let response;
-    let error;
-    let tag = ALEXA_TAG;
-    let value = 'alexaCalledAppInventor';
-    let projectName = 'Lambda_CloudDB_Redis_Test';
-    // tests setting and PUBLISHING in clouddb (this will be noticed by App
-    // Inventor components subscribed to the updates)
-    client.eval(
-        // Calling convention: tag, value, json encoded list of values, project,
-        // ...
-        SET_SUB_SCRIPT, 1, tag, value, JSON.stringify([value]), projectName,
-        function(e, r) {
-          if (e) {
-            console.error('Something went wrong with client.eval: ', e);
-            error = e;
-          } else {
-            if (r) {
-              response = r;
+      let response;
+      let error;
+      let tag = ALEXA_TAG;
+      let value = signalNum;
+      let projectName = PROJECT_NAME;
+      // tests setting and PUBLISHING in clouddb (this will be noticed by App
+      // Inventor components subscribed to the updates)
+      client.eval(
+          // Calling convention: tag, value, json encoded list of values,
+          // project,
+          // ...
+          SET_SUB_SCRIPT, 1, tag, value, JSON.stringify([value]), projectName,
+          function(e, r) {
+            if (e) {
+              console.error('Something went wrong with client.eval: ', e);
+              error = e;
+            } else {
+              if (r) {
+                response = r;
+              }
             }
-          }
 
-          // quit redis:
-          client.end(function(err) {
-            if (err) {
-              console.error('Error when quitting redis: ', err);
-            }
+            // quit redis:
+            client.end(function(err) {
+              if (err) {
+                console.error('Error when quitting redis: ', err);
+              }
+            });
           });
-        });
-    // Feedback for the user:
-    let voiceOutput = '';
-    let cardOutput = '';
-    if (error) {
-      voiceOutput = 'There was an error connecting. Please try again later. ' +
-          'If this problem persists, please post on the App Inventor forums, ' +
-          'which can be found in the Resources menu on the App Inventor website, ' +
-          '"App Inventor dot MIT dot EDU". ';
-      cardOutput = voiceOutput + '(appinventor.mit.edu) ' +
-          ' You may include the following error code with your post on the forums: ' +
-          error;
+
+
+      // Feedback for the user:
+      let voiceOutput = '';
+      let cardOutput = '';
+      if (error) {
+        voiceOutput =
+            'There was an error connecting. Please try again later. ' +
+            'If this problem persists, please post on the App Inventor forums, ' +
+            'which can be found in the Resources menu on the App Inventor website, ' +
+            '"App Inventor dot MIT dot EDU". ';
+        cardOutput = voiceOutput + '(appinventor.mit.edu) ' +
+            ' You may include the following error code with your post on the forums: ' +
+            error;
+      } else {
+        voiceOutput = 'Successfully connected to App Inventor! Sent signal ' +
+            signalNum + '.';
+        cardOutput = voiceOutput +
+            'If the "when Alexa.sendsSignal" block was not ' +
+            'triggered in App Inventor, check the tutorials section ' +
+            '(http://appinventor.mit.edu/explore/ai2/tutorials.html) or the forums ' +
+            '(https://groups.google.com/forum/#!forum/mitappinventortest) ' +
+            'on the App Inventor website.';
+      }
+      // render a card in the alexa app:
+      this.response.cardRenderer(SKILL_NAME, cardOutput);
+      // voice output from alexa:
+      this.response.speak(voiceOutput);
+      this.emit(':responseReady');
+    } else if (this.event.request.dialogState == 'COMPLETED') {
+      console.error(
+          'The dialogState is completed, but there is no signal value. Signal value: ' +
+          signalNum + '. This should never occur.');
     } else {
-      voiceOutput = 'Successfully connected to App Inventor! ';
-      cardOutput = voiceOutput +
-          'If the "when Alexa.sendsSignal" block was not ' +
-          'triggered in App Inventor, check the tutorials section ' +
-          '(http://appinventor.mit.edu/explore/ai2/tutorials.html) or the forums ' +
-          '(https://groups.google.com/forum/#!forum/mitappinventortest) ' +
-          'on the App Inventor website.';
+      // There was no signal number, so get Alexa to ask the user for a number
+      // by returning a Dialog.Delegate directive.
+      this.emit(':delegate');
     }
-    // render a card in the alexa app:
-    this.response.cardRenderer(SKILL_NAME, cardOutput);
-    // voice output from alexa:
-    this.response.speak(voiceOutput);
+  },
+  'AMAZON.FallbackIntent': function() {
+    const speechOutput = FALLBACK_MESSAGE;
+
+    this.response.speak(speechOutput);
     this.emit(':responseReady');
   },
   'AMAZON.HelpIntent': function() {
